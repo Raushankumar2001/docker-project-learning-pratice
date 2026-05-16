@@ -1,0 +1,126 @@
+# All application services
+services:
+  # Frontend React Application
+  frontend:
+    # Build frontend image using frontend/Dockerfile
+    build: ./frontend
+
+    # Fixed container name
+    container_name: frontend-container
+
+    # Port Mapping
+    # Laptop Port : Container Port
+    ports:
+      - '5173:5173'
+
+    # Frontend starts only after backend becomes healthy
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    # Automatically restart container if crashed
+    restart: always
+
+    # Connect service to custom Docker network
+    networks:
+      - app-network
+
+  # Backend Node.js Application
+  backend:
+    # Build backend image using backend/Dockerfile
+    build: ./backend
+
+    # Fixed backend container name
+    container_name: backend-container
+
+    # Port Mapping
+    ports:
+      - '3001:3001'
+
+    # Load environment variables from .env file
+    env_file:
+      - ./backend/.env
+
+    # Backend starts only after MongoDB becomes healthy
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    # Restart backend automatically if crash happens
+    restart: always
+
+    # Connect backend to same Docker network
+    networks:
+      - app-network
+
+    # Healthcheck for backend service
+    # Docker checks whether backend is responding or not
+    healthcheck:
+      # Test backend API
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3001']
+
+      # Check every 30 seconds
+      interval: 30s
+
+      # Wait max 10 seconds for response
+      timeout: 10s
+
+      # Retry 3 times before marking unhealthy
+      retries: 3
+
+      # Wait 10 seconds before first healthcheck
+      start_period: 10s
+
+  # MongoDB Database Service
+  mongo:
+    # Use official MongoDB image from Docker Hub
+    image: mongo
+
+    # Fixed MongoDB container name
+    container_name: mongo-container
+
+    # MongoDB Port Mapping
+    ports:
+      - '27017:27017'
+
+    # Named Docker Volume
+    # Stores database data permanently
+    # Data remains safe even if container deletes
+    volumes:
+      - mongo-data:/data/db
+
+    # Restart MongoDB automatically if crash happens
+    restart: always
+
+    # Connect MongoDB to same network
+    networks:
+      - app-network
+
+    # MongoDB Healthcheck
+    # Docker checks whether MongoDB is alive or not
+    healthcheck:
+      # Ping MongoDB server
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+
+      # Run healthcheck every 30 seconds
+      interval: 30s
+
+      # Wait max 10 seconds
+      timeout: 10s
+
+      # Retry 5 times before unhealthy status
+      retries: 5
+
+      # Wait 20 seconds before first check
+      start_period: 20s
+
+# Docker Named Volumes
+volumes:
+  # MongoDB persistent storage
+  mongo-data:
+
+# Custom Docker Networks
+networks:
+  # Bridge network for container communication
+  app-network:
+    driver: bridge
