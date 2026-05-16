@@ -17,7 +17,7 @@ function App() {
 
   return (
     <div style={{ padding: '40px' }}>
-      <h1>Docker Learning Projects</h1>
+      <h1>Docker Learning Project</h1>
 
       <h2>{message}</h2>
     </div>
